@@ -1,0 +1,16 @@
+[package]
+name = "aw2013"
+version = "0.1.0"
+edition = "2021"
+description = "Driver for the AW2013 3-Channel LED Controller"
+authors = ["Ben Scholzen 'DASPRiD' <mail@dasprids.de"]
+categories = ["embedded", "hardware-support"]
+keywords = ["led", "rppal", "aw2013"]
+homepage = "https://github.com/DASPRiD/aw2013"
+repository = "https://github.com/DASPRiD/aw2013"
+documentation = "https://docs.rs/aw2013"
+license-file = "LICENSE"
+
+[dependencies]
+rppal = "0.14.1"
+thiserror = "1.0.38"
