@@ -1,6 +1,6 @@
 [package]
 name = "aw2013"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "Driver for the AW2013 3-Channel LED Controller"
 authors = ["Ben Scholzen 'DASPRiD' <mail@dasprids.de"]
