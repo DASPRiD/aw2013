@@ -232,10 +232,8 @@ impl Aw2013 {
         }
 
         for led in [Led::Led0, Led::Led1, Led::Led2] {
-            self.i2c.smbus_write_byte(
-                REG_LED_PWM_BASE + (led as u8),
-                rgb[led as usize]
-            )?;
+            self.i2c
+                .smbus_write_byte(REG_LED_PWM_BASE + (led as u8), rgb[led as usize])?;
             self.configure_timing(led, timing)?;
         }
 
