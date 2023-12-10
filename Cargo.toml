@@ -12,5 +12,5 @@ documentation = "https://docs.rs/aw2013"
 license-file = "LICENSE"
 
 [dependencies]
-rppal = "0.14.1"
+rppal = "0.16.0"
 thiserror = "1.0.38"
