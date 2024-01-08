@@ -113,8 +113,8 @@ pub struct Timing {
 }
 
 pub struct Aw2013<I>
-    where
-        I: I2c,
+where
+    I: I2c,
 {
     i2c: I,
     address: u8,
@@ -127,7 +127,11 @@ where
 {
     /// Create a new AW2013 driver from a pre-configured i2c interface.
     pub fn new(i2c: I, address: u8, max_currents: [Current; 3]) -> Self {
-        Self { i2c, address, max_currents }
+        Self {
+            i2c,
+            address,
+            max_currents,
+        }
     }
 
     /// Create a new AW2013 driver from the default address.
