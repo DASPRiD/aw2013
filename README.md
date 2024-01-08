@@ -1,6 +1,9 @@
 # Rust AW2013 driver
 
-This is a `std` driver for the AW2013 3-Channel LED Controller.
+This is a `no-std` driver for the AW2013 3-Channel LED Controller.
+
+Version 2 of the driver utilizes [embedded-hal](https://github.com/rust-embedded/embedded-hal) 1.x crate in order to be
+compatible with a large array of hardware.
 
 ## RGB LED wiring
 

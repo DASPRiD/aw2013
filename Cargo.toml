@@ -4,13 +4,15 @@ version = "1.0.1"
 edition = "2021"
 description = "Driver for the AW2013 3-Channel LED Controller"
 authors = ["Ben Scholzen 'DASPRiD' <mail@dasprids.de"]
-categories = ["embedded", "hardware-support"]
-keywords = ["led", "rppal", "aw2013"]
+categories = ["embedded", "hardware-support", "no-std"]
+keywords = ["no-std", "led", "embedded-hal-driver", "embedded-hal", "aw2013"]
 homepage = "https://github.com/DASPRiD/aw2013"
 repository = "https://github.com/DASPRiD/aw2013"
 documentation = "https://docs.rs/aw2013"
 license-file = "LICENSE"
 
 [dependencies]
-rppal = "0.16.0"
-thiserror = "1.0.38"
+embedded-hal = "=1.0.0-rc.3"
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+linux-embedded-hal = "0.4.0-alpha.4"

@@ -1,10 +1,10 @@
 //! Driver for the AW2013 3-Channel LED Controller
 //!
-//! Provides a simple interface for the AW2013 LED controller. Utilized the
-//! `rpal` library for I2C communication.
+//! Provides a simple interface for the AW2013 LED controller.
 
-use rppal::i2c::I2c;
-use thiserror::Error;
+#![no_std]
+
+use embedded_hal::i2c::I2c;
 
 // Register addresses
 const REG_RESET: u8 = 0x00;
@@ -23,15 +23,6 @@ const LED_FADE_IN_MASK: u8 = 0x20;
 const LED_BREATHE_MODE_MASK: u8 = 0x10;
 const LED_RESET_MASK: u8 = 0x55;
 
-#[derive(Error, Debug)]
-pub enum Aw2013Error {
-    #[error("Invalid chip ID")]
-    InvalidChipId,
-
-    #[error(transparent)]
-    I2cError(#[from] rppal::i2c::Error),
-}
-
 /// LED mapping for the three different LEDs as defined by the specs.
 #[derive(Copy, Clone)]
 #[repr(u8)]
@@ -49,11 +40,6 @@ pub enum Current {
     Five = 0x1,
     Ten = 0x2,
     Fifteen = 0x3,
-}
-
-pub struct Aw2013 {
-    i2c: I2c,
-    max_currents: [Current; 3],
 }
 
 /// Timing configuration for breathing effects.
@@ -126,44 +112,44 @@ pub struct Timing {
     pub cycles: u8,
 }
 
-impl Aw2013 {
+pub struct Aw2013<I>
+    where
+        I: I2c,
+{
+    i2c: I,
+    address: u8,
+    max_currents: [Current; 3],
+}
+
+impl<I> Aw2013<I>
+where
+    I: I2c,
+{
     /// Create a new AW2013 driver from a pre-configured i2c interface.
-    pub fn new(i2c: I2c, max_currents: [Current; 3]) -> Self {
-        Self { i2c, max_currents }
+    pub fn new(i2c: I, address: u8, max_currents: [Current; 3]) -> Self {
+        Self { i2c, address, max_currents }
     }
 
     /// Create a new AW2013 driver from the default address.
-    pub fn from_default_address(max_currents: [Current; 3]) -> Result<Aw2013, Aw2013Error> {
-        Aw2013::from_address(0x45, max_currents)
-    }
-
-    /// Create a new AW2013 driver from a specific address.
-    pub fn from_address(address: u16, max_currents: [Current; 3]) -> Result<Aw2013, Aw2013Error> {
-        let mut i2c = I2c::new()?;
-        i2c.set_slave_address(address)?;
-
-        Ok(Aw2013::new(i2c, max_currents))
+    pub fn from_default_address(i2c: I, max_currents: [Current; 3]) -> Self {
+        Aw2013::new(i2c, 0x45, max_currents)
     }
 
     /// Reset the controller to its default state.
     ///
     /// Remember to enable the controller again after the reset if you plan to use it further.
-    pub fn reset(&mut self) -> Result<(), Aw2013Error> {
-        self.i2c.smbus_write_byte(REG_RESET, LED_RESET_MASK)?;
-        Ok(())
+    pub fn reset(&mut self) -> Result<(), I::Error> {
+        self.write_register(REG_RESET, LED_RESET_MASK)
     }
 
     /// Enable the LED controller.
-    pub fn enable(&mut self) -> Result<(), Aw2013Error> {
-        self.i2c
-            .smbus_write_byte(REG_GLOBAL_CONTROL, LED_MODULE_ENABLE_MASK)?;
-        Ok(())
+    pub fn enable(&mut self) -> Result<(), I::Error> {
+        self.write_register(REG_GLOBAL_CONTROL, LED_MODULE_ENABLE_MASK)
     }
 
     /// Disable the LED controller.
-    pub fn disable(&mut self) -> Result<(), Aw2013Error> {
-        self.i2c.smbus_write_byte(REG_GLOBAL_CONTROL, 0)?;
-        Ok(())
+    pub fn disable(&mut self) -> Result<(), I::Error> {
+        self.write_register(REG_GLOBAL_CONTROL, 0)
     }
 
     /// Set a static RGB value for all LEDs.
@@ -174,7 +160,7 @@ impl Aw2013 {
         rgb: [u8; 3],
         fade_in: Option<u8>,
         fade_out: Option<u8>,
-    ) -> Result<(), Aw2013Error> {
+    ) -> Result<(), I::Error> {
         for led in [Led::Led0, Led::Led1, Led::Led2] {
             self.set_static(led, rgb[led as usize], fade_in, fade_out)?;
         }
@@ -191,7 +177,7 @@ impl Aw2013 {
         brightness: u8,
         fade_in: Option<u8>,
         fade_out: Option<u8>,
-    ) -> Result<(), Aw2013Error> {
+    ) -> Result<(), I::Error> {
         if brightness == 0 {
             return self.disable_led(led);
         }
@@ -200,20 +186,16 @@ impl Aw2013 {
 
         if let Some(fade_in) = fade_in {
             config |= LED_FADE_IN_MASK;
-            self.i2c
-                .smbus_write_byte(REG_TIMING_0_BASE + (led as u8) * 3, fade_in.min(7) << 4)?;
+            self.write_register(REG_TIMING_0_BASE + (led as u8) * 3, fade_in.min(7) << 4)?;
         }
 
         if let Some(fade_out) = fade_out {
             config |= LED_FADE_OUT_MASK;
-            self.i2c
-                .smbus_write_byte(REG_TIMING_0_BASE + (led as u8) * 3, fade_out.min(7) << 4)?;
+            self.write_register(REG_TIMING_0_BASE + (led as u8) * 3, fade_out.min(7) << 4)?;
         }
 
-        self.i2c
-            .smbus_write_byte(REG_LED_MODE_BASE + (led as u8), config)?;
-        self.i2c
-            .smbus_write_byte(REG_LED_PWM_BASE + (led as u8), brightness)?;
+        self.write_register(REG_LED_MODE_BASE + (led as u8), config)?;
+        self.write_register(REG_LED_PWM_BASE + (led as u8), brightness)?;
 
         self.enable_led(led)?;
 
@@ -221,24 +203,23 @@ impl Aw2013 {
     }
 
     /// Set a breathing cycle RGB value for all LEDs.
-    pub fn set_breathing_rgb(&mut self, rgb: [u8; 3], timing: &Timing) -> Result<(), Aw2013Error> {
-        self.i2c.smbus_write_byte(REG_LED_ENABLE, 0x0)?;
+    pub fn set_breathing_rgb(&mut self, rgb: [u8; 3], timing: &Timing) -> Result<(), I::Error> {
+        self.write_register(REG_LED_ENABLE, 0x0)?;
 
         for led in [Led::Led0, Led::Led1, Led::Led2] {
-            self.i2c.smbus_write_byte(
+            self.write_register(
                 REG_LED_MODE_BASE + (led as u8),
                 self.max_currents[led as usize] as u8,
             )?;
         }
 
         for led in [Led::Led0, Led::Led1, Led::Led2] {
-            self.i2c
-                .smbus_write_byte(REG_LED_PWM_BASE + (led as u8), rgb[led as usize])?;
+            self.write_register(REG_LED_PWM_BASE + (led as u8), rgb[led as usize])?;
             self.configure_timing(led, timing)?;
         }
 
         for led in [Led::Led0, Led::Led1, Led::Led2] {
-            self.i2c.smbus_write_byte(
+            self.write_register(
                 REG_LED_MODE_BASE + (led as u8),
                 self.max_currents[led as usize] as u8 | LED_BREATHE_MODE_MASK,
             )?;
@@ -252,7 +233,7 @@ impl Aw2013 {
             }
         }
 
-        self.i2c.smbus_write_byte(REG_LED_ENABLE, active_leds)?;
+        self.write_register(REG_LED_ENABLE, active_leds)?;
 
         Ok(())
     }
@@ -263,17 +244,16 @@ impl Aw2013 {
         led: Led,
         brightness: u8,
         timing: &Timing,
-    ) -> Result<(), Aw2013Error> {
+    ) -> Result<(), I::Error> {
         self.disable_led(led)?;
 
         if brightness == 0 {
             return Ok(());
         }
 
-        self.i2c
-            .smbus_write_byte(REG_LED_PWM_BASE + (led as u8), brightness)?;
+        self.write_register(REG_LED_PWM_BASE + (led as u8), brightness)?;
         self.configure_timing(led, timing)?;
-        self.i2c.smbus_write_byte(
+        self.write_register(
             REG_LED_MODE_BASE + (led as u8),
             self.max_currents[led as usize] as u8 | LED_BREATHE_MODE_MASK,
         )?;
@@ -283,16 +263,16 @@ impl Aw2013 {
         Ok(())
     }
 
-    fn configure_timing(&mut self, led: Led, timing: &Timing) -> Result<(), Aw2013Error> {
-        self.i2c.smbus_write_byte(
+    fn configure_timing(&mut self, led: Led, timing: &Timing) -> Result<(), I::Error> {
+        self.write_register(
             REG_TIMING_0_BASE + (led as u8) * 3,
             timing.rise.min(7) << 4 | timing.hold.min(5),
         )?;
-        self.i2c.smbus_write_byte(
+        self.write_register(
             REG_TIMING_1_BASE + (led as u8) * 3,
             timing.fall.min(7) << 4 | timing.off.min(7),
         )?;
-        self.i2c.smbus_write_byte(
+        self.write_register(
             REG_TIMING_2_BASE + (led as u8) * 3,
             timing.delay.min(7) << 4 | timing.cycles.min(15),
         )?;
@@ -300,19 +280,23 @@ impl Aw2013 {
         Ok(())
     }
 
-    fn disable_led(&mut self, led: Led) -> Result<(), Aw2013Error> {
-        let enable_value = self.i2c.smbus_read_byte(REG_LED_ENABLE)?;
-        self.i2c
-            .smbus_write_byte(REG_LED_ENABLE, enable_value & (!(1 << (led as u8))))?;
-
-        Ok(())
+    fn disable_led(&mut self, led: Led) -> Result<(), I::Error> {
+        let enable_value = self.read_register(REG_LED_ENABLE)?;
+        self.write_register(REG_LED_ENABLE, enable_value & (!(1 << (led as u8))))
     }
 
-    fn enable_led(&mut self, led: Led) -> Result<(), Aw2013Error> {
-        let enable_value = self.i2c.smbus_read_byte(REG_LED_ENABLE)?;
-        self.i2c
-            .smbus_write_byte(REG_LED_ENABLE, enable_value | (1 << (led as u8)))?;
+    fn enable_led(&mut self, led: Led) -> Result<(), I::Error> {
+        let enable_value = self.read_register(REG_LED_ENABLE)?;
+        self.write_register(REG_LED_ENABLE, enable_value | (1 << (led as u8)))
+    }
 
-        Ok(())
+    fn write_register(&mut self, address: u8, data: u8) -> Result<(), I::Error> {
+        self.i2c.write(self.address, &[address, data])
+    }
+
+    fn read_register(&mut self, address: u8) -> Result<u8, I::Error> {
+        let mut buffer: [u8; 1] = [0];
+        self.i2c.write_read(self.address, &[address], &mut buffer)?;
+        Ok(buffer[0])
     }
 }
