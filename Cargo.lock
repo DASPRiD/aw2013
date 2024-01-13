@@ -72,15 +72,15 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 
 [[package]]
 name = "embedded-hal"
-version = "1.0.0-rc.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc402f79e1fd22731ca945b4f97b5ff37e7b3f379312595c42bb2e8811c29920"
+checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 
 [[package]]
 name = "embedded-hal-nb"
-version = "1.0.0-rc.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cde58312a0675b6c0389eb0dceb2bf8c735a697b0b5baa1f23bbaf030636deb"
+checksum = "fba4268c14288c828995299e59b12babdbe170f6c6d73731af1b4648142e8605"
 dependencies = [
  "embedded-hal",
  "nb",
@@ -127,9 +127,9 @@ checksum = "13e3bf6590cbc649f4d1a3eefc9d5d6eb746f5200ffb04e5e142700b8faa56e7"
 
 [[package]]
 name = "linux-embedded-hal"
-version = "0.4.0-alpha.4"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d9c51165ae68a71b52e2a6e4d2487841e748597c19ad389b260f29f76f0e807"
+checksum = "a8d566b726e1b6810f66c6f1c769889248439c27f06a59df2881a735454cfa02"
 dependencies = [
  "cast",
  "embedded-hal",
