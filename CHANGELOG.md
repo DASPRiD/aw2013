@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/DASPRiD/aw2013/compare/v2.0.0...v2.1.0) (2024-01-13)
+
+
+### Features
+
+* update embedded-hal to 1.0.0 ([88043cb](https://github.com/DASPRiD/aw2013/commit/88043cbba81d8d3a3acd1c1e78d4112310c055a7))
+
 # [2.0.0](https://github.com/DASPRiD/aw2013/compare/v1.0.1...v2.0.0) (2024-01-08)
 
 
